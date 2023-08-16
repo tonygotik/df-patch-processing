@@ -1,0 +1,137 @@
+{
+	"name": "BienDong_InvoiceList",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Deheus_D365",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Date",
+				"type": "char"
+			},
+			{
+				"name": "Document type",
+				"type": "varchar"
+			},
+			{
+				"name": "Document number",
+				"type": "varchar"
+			},
+			{
+				"name": "Customer code",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Customer name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Description",
+				"type": "nvarchar"
+			},
+			{
+				"name": "SOR_GidNum",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "SOR_GidLp",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Item code",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Item name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Dispatch quantity in Unit",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "Unit",
+				"type": "varchar"
+			},
+			{
+				"name": "Dispatch quantity in Unit auxiliary",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "Unit auxiliary",
+				"type": "varchar"
+			},
+			{
+				"name": "Sale Price",
+				"type": "decimal",
+				"precision": 15,
+				"scale": 4
+			},
+			{
+				"name": "Sale value",
+				"type": "decimal",
+				"precision": 15,
+				"scale": 2
+			},
+			{
+				"name": "VAT Rate (%)",
+				"type": "decimal",
+				"precision": 5,
+				"scale": 2
+			},
+			{
+				"name": "Total Sale value",
+				"type": "decimal",
+				"precision": 15,
+				"scale": 2
+			},
+			{
+				"name": "Regular Price",
+				"type": "decimal",
+				"precision": 23,
+				"scale": 6
+			},
+			{
+				"name": "Regular Value",
+				"type": "decimal",
+				"precision": 35,
+				"scale": 10
+			},
+			{
+				"name": "Context",
+				"type": "varchar"
+			},
+			{
+				"name": "Warehouse Code",
+				"type": "varchar"
+			},
+			{
+				"name": "Warehouse Name",
+				"type": "varchar"
+			},
+			{
+				"name": "Cogs",
+				"type": "decimal",
+				"precision": 15,
+				"scale": 2
+			},
+			{
+				"name": "Customer channel",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "VN",
+			"table": "stgBienDongInvoiceList"
+		}
+	}
+}

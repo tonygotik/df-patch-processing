@@ -1,0 +1,17 @@
+{
+	"name": "OnPremDeheus2",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "RawData",
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": "integrated security=False;data source=10.84.3.42;initial catalog=RawData;user id=sa",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiI5ZTM1NjU5OS1lY2M1LTRmODYtYjljZi1jMTI3MjRiZjIyMGIiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "SH-Deheus",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

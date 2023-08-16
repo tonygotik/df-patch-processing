@@ -1,0 +1,370 @@
+{
+	"name": "103 - Extract pipeline for One DataSource - BottomLevel",
+	"properties": {
+		"activities": [
+			{
+				"name": "ListTablesFromOneGroup",
+				"description": "List tables from one group and iterate each of them to downstream activities",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.TablesPerGroupToExtract",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "RouteJobsBasedOnExtractBehavior",
+							"description": "Check the extract behavior for each table if it requires full extract or incremental extract. If it is Default or FullExtract case, do full extract. If it is DeltaExtract case, do incremental extract via watermark column to identify changes.",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@json(item().DataExtractBehaviorSettings).dataExtractBehavior",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "FullExtract",
+										"activities": [
+											{
+												"name": "FullExtractOneTable",
+												"description": "Take a full snapshot on this table and copy it to the destination",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "7.00:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [
+													{
+														"name": "Source",
+														"value": "@{item().SourceObjectSchema}.@{item().SourceObjectName}"
+													},
+													{
+														"name": "Destination",
+														"value": "@{item().SinkObjectSchema}.@{item().SinkObjectName}"
+													}
+												],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"sqlReaderQuery": {
+															"value": "-- @{json(item().ExtractSourceSettings).sqlReaderQuery}\n\n--SELECT * FROM [@{item().SourceObjectSchema}].[@{item().SourceObjectName}]\n--@{if(equals(pipeline().parameters.MasterSettings.CountryKey, -1), '', concat(' WHERE CountryKey = ', string(pipeline().parameters.MasterSettings.CountryKey)))}\n\n@{if(empty(json(item().ExtractSourceSettings).sqlReaderQuery), \n        concat('SELECT * FROM [', item().SourceObjectSchema,'].[', item().SourceObjectName, ']'), \n        json(item().ExtractSourceSettings).sqlReaderQuery)}\n@{if(equals(pipeline().parameters.MasterSettings.CountryKey, -1), '', \n    if(and(equals(empty(json(item().ExtractSourceSettings).sqlReaderQuery), bool(0)), \n        greater(indexOf(toUpper(json(item().ExtractSourceSettings).sqlReaderQuery), 'WHERE'), 0)), \n        concat(' AND CountryKey = ', string(pipeline().parameters.MasterSettings.CountryKey)), \n        concat(' WHERE CountryKey = ', string(pipeline().parameters.MasterSettings.CountryKey))))\n}",
+															"type": "Expression"
+														},
+														"partitionOption": {
+															"value": "@json(item().ExtractSourceSettings).partitionOption",
+															"type": "Expression"
+														},
+														"partitionSettings": {
+															"partitionColumnName": {
+																"value": "@{json(item().ExtractSourceSettings).partitionColumnName}",
+																"type": "Expression"
+															},
+															"partitionUpperBound": {
+																"value": "@{json(item().ExtractSourceSettings).partitionUpperBound}",
+																"type": "Expression"
+															},
+															"partitionLowerBound": {
+																"value": "@{json(item().ExtractSourceSettings).partitionLowerBound}",
+																"type": "Expression"
+															},
+															"partitionNames": "@json(item().ExtractSourceSettings).partitionNames"
+														}
+													},
+													"sink": {
+														"type": "SqlServerSink",
+														"preCopyScript": {
+															"value": "@{json(item().ExtractSinkSettings).preCopyScript}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"tableOption": {
+															"value": "@{json(item().ExtractSinkSettings).TableOption}",
+															"type": "Expression"
+														}
+													},
+													"enableStaging": false,
+													"validateDataConsistency": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ExtractPipeline_SourceDS_tnu",
+														"type": "DatasetReference",
+														"parameters": {
+															"schema": {
+																"value": "@item().SourceObjectSchema",
+																"type": "Expression"
+															},
+															"table": {
+																"value": "@item().SourceObjectName",
+																"type": "Expression"
+															},
+															"dataSource": {
+																"value": "@pipeline().parameters.DataSource",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ExtractPipeline_DestinationDS_ntu",
+														"type": "DatasetReference",
+														"parameters": {
+															"schema": {
+																"value": "@item().SinkObjectSchema",
+																"type": "Expression"
+															},
+															"table": {
+																"value": "@item().SinkObjectName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Logging info or error for FullExtract",
+												"description": "invoke the pipeline 'common pipeline - 04 - ETL loggingJsonStr'",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "FullExtractOneTable",
+														"dependencyConditions": [
+															"Completed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "common pipeline - 04 - ETL loggingJsonStr",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"loggingJson": {
+															"value": "@json(\n    concat(\n        '{',\n            '\"LineageKey\": ', string(pipeline().parameters.MasterSettings.MasterEtlLineageKey), ',',\n            '\"StageName\": \"EXTRACT\",',\n            '\"SchemaName\": \"', item().SourceObjectSchema, '\",',\n            '\"TableName\": \"', item().SourceObjectName, '\",',\n            '\"StoredProcedureName\": null,',\n            '\"EtlStatus\": \"', if(equals(activity('FullExtractOneTable').Status, 'Failed'), 'FAILED', 'COMPLETED'), '\",',\n            '\"PipelineName\": \"', pipeline().Pipeline, '\",',\n            '\"PipelineRunId\": \"', pipeline().RunId, '\",',\n            '\"ActivityError\": ', activity('FullExtractOneTable').Error, ',',\n            '\"ActivityStatus\": \"', activity('FullExtractOneTable').Status, '\",',\n            '\"ActivityDuration\": \"', activity('FullExtractOneTable').Duration, '\",',\n            '\"ActivityRunId\": \"', activity('FullExtractOneTable').ActivityRunId, '\",',\n            '\"ActivityOutput\": ', activity('FullExtractOneTable').Output, ',',\n            '\"ActivityExecutionStartTime\": \"', activity('FullExtractOneTable').ExecutionStartTime, '\",',\n            '\"ActivityExecutionEndTime\": \"', activity('FullExtractOneTable').ExecutionEndTime, '\",',\n            '\"ActivityStatusCode\": \"', activity('FullExtractOneTable').StatusCode, '\",',\n            '\"SourceName\": null,',\n            '\"Parametters\": {\n                \"MasterSettings\":', string(pipeline().parameters.MasterSettings),\n                ',\"ExtractLoadControlTableSettings\":', string(item()),\n            '}',\n        '}'\n    )\n)",
+															"type": "Expression"
+														},
+														"RaiseErrorIfActivityFailed": "No"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "DeltaExtract",
+										"activities": [
+											{
+												"name": "Extract pipeline for DeltaExtract",
+												"description": "Invoke '104 - Extract pipeline for One DataSource - DeltaExtract'",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "104 - Extract pipeline for One DataSource - DeltaExtract",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"TableSettingsToExtract": {
+															"value": "@item()",
+															"type": "Expression"
+														},
+														"DataSource": {
+															"value": "@pipeline().parameters.DataSource",
+															"type": "Expression"
+														},
+														"MasterSettings": {
+															"value": "@pipeline().parameters.MasterSettings",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "DefaultFullExtractOneTable",
+										"description": "Take a full snapshot on this table and copy it to the destination",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [
+											{
+												"name": "Source",
+												"value": "@{item().SourceObjectSchema}.@{item().SourceObjectName}"
+											},
+											{
+												"name": "Destination",
+												"value": "@{item().SinkObjectSchema}.@{item().SinkObjectName}"
+											}
+										],
+										"typeProperties": {
+											"source": {
+												"type": "SqlServerSource",
+												"sqlReaderQuery": {
+													"value": "-- @{json(item().ExtractSourceSettings).sqlReaderQuery}\n\n--SELECT * FROM [@{item().SourceObjectSchema}].[@{item().SourceObjectName}]\n--@{if(equals(pipeline().parameters.MasterSettings.CountryKey, -1), '', concat(' WHERE CountryKey = ', string(pipeline().parameters.MasterSettings.CountryKey)))}\n\n@{if(empty(json(item().ExtractSourceSettings).sqlReaderQuery), \n        concat('SELECT * FROM [', item().SourceObjectSchema,'].[', item().SourceObjectName, ']'), \n        json(item().ExtractSourceSettings).sqlReaderQuery)}\n@{if(equals(pipeline().parameters.MasterSettings.CountryKey, -1), '', \n    if(and(equals(empty(json(item().ExtractSourceSettings).sqlReaderQuery), bool(0)), \n        greater(indexOf(toUpper(json(item().ExtractSourceSettings).sqlReaderQuery), 'WHERE'), 0)), \n        concat(' AND CountryKey = ', string(pipeline().parameters.MasterSettings.CountryKey)), \n        concat(' WHERE CountryKey = ', string(pipeline().parameters.MasterSettings.CountryKey))))\n}",
+													"type": "Expression"
+												},
+												"partitionOption": {
+													"value": "@json(item().ExtractSourceSettings).partitionOption",
+													"type": "Expression"
+												},
+												"partitionSettings": {
+													"partitionColumnName": {
+														"value": "@{json(item().ExtractSourceSettings).partitionColumnName}",
+														"type": "Expression"
+													},
+													"partitionUpperBound": {
+														"value": "@{json(item().ExtractSourceSettings).partitionUpperBound}",
+														"type": "Expression"
+													},
+													"partitionLowerBound": {
+														"value": "@{json(item().ExtractSourceSettings).partitionLowerBound}",
+														"type": "Expression"
+													},
+													"partitionNames": "@json(item().ExtractSourceSettings).partitionNames"
+												}
+											},
+											"sink": {
+												"type": "SqlServerSink",
+												"preCopyScript": {
+													"value": "@{json(item().ExtractSinkSettings).preCopyScript}",
+													"type": "Expression"
+												},
+												"writeBehavior": "insert",
+												"sqlWriterUseTableLock": false,
+												"tableOption": {
+													"value": "@{json(item().ExtractSinkSettings).TableOption}",
+													"type": "Expression"
+												}
+											},
+											"enableStaging": false,
+											"validateDataConsistency": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "ExtractPipeline_SourceDS_tnu",
+												"type": "DatasetReference",
+												"parameters": {
+													"schema": {
+														"value": "@item().SourceObjectSchema",
+														"type": "Expression"
+													},
+													"table": {
+														"value": "@item().SourceObjectName",
+														"type": "Expression"
+													},
+													"dataSource": {
+														"value": "@pipeline().parameters.DataSource",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "ExtractPipeline_DestinationDS_ntu",
+												"type": "DatasetReference",
+												"parameters": {
+													"schema": {
+														"value": "@item().SinkObjectSchema",
+														"type": "Expression"
+													},
+													"table": {
+														"value": "@item().SinkObjectName",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "Logging info or error for DefaultExtract",
+										"description": "invoke the pipeline 'common pipeline - 04 - ETL loggingJsonStr'",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "DefaultFullExtractOneTable",
+												"dependencyConditions": [
+													"Completed"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "common pipeline - 04 - ETL loggingJsonStr",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"loggingJson": {
+													"value": "@json(\n    concat(\n        '{',\n            '\"LineageKey\": ', string(pipeline().parameters.MasterSettings.MasterEtlLineageKey), ',',\n            '\"StageName\": \"EXTRACT\",',\n            '\"SchemaName\": \"', item().SourceObjectSchema, '\",',\n            '\"TableName\": \"', item().SourceObjectName, '\",',\n            '\"StoredProcedureName\": null,',\n            '\"EtlStatus\": \"', if(equals(activity('DefaultFullExtractOneTable').Status, 'Failed'), 'FAILED', 'COMPLETED'), '\",',\n            '\"PipelineName\": \"', pipeline().Pipeline, '\",',\n            '\"PipelineRunId\": \"', pipeline().RunId, '\",',\n            '\"ActivityError\": ', activity('DefaultFullExtractOneTable').Error, ',',\n            '\"ActivityStatus\": \"', activity('DefaultFullExtractOneTable').Status, '\",',\n            '\"ActivityDuration\": \"', activity('DefaultFullExtractOneTable').Duration, '\",',\n            '\"ActivityRunId\": \"', activity('DefaultFullExtractOneTable').ActivityRunId, '\",',\n            '\"ActivityOutput\": ', activity('DefaultFullExtractOneTable').Output, ',',\n            '\"ActivityExecutionStartTime\": \"', activity('DefaultFullExtractOneTable').ExecutionStartTime, '\",',\n            '\"ActivityExecutionEndTime\": \"', activity('DefaultFullExtractOneTable').ExecutionEndTime, '\",',\n            '\"ActivityStatusCode\": \"', activity('DefaultFullExtractOneTable').StatusCode, '\",',\n            '\"SourceName\": null,',\n            '\"Parametters\": {\n                \"MasterSettings\":', string(pipeline().parameters.MasterSettings),\n                ',\"ExtractLoadControlTableSettings\":', string(item()),\n            '}',\n        '}'\n    )\n)",
+													"type": "Expression"
+												},
+												"RaiseErrorIfActivityFailed": "No"
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"TablesPerGroupToExtract": {
+				"type": "array"
+			},
+			"DataSource": {
+				"type": "object"
+			},
+			"MasterSettings": {
+				"type": "object"
+			}
+		},
+		"folder": {
+			"name": "1. Extract Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:49Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,57 @@
+{
+	"name": "008 - master pipeline daily Update LastCutoffTime",
+	"properties": {
+		"activities": [
+			{
+				"name": "Update LastCutoffTime to MasterEtlCutoffTime",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ETL].[MasterEtlUpdateLastLineageKeyAndCutoffTime]",
+					"storedProcedureParameters": {
+						"CurrentCutoffTime": {
+							"value": {
+								"value": "@pipeline().parameters.CurrentCutoffTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"LineageKey": {
+							"value": {
+								"value": "@pipeline().parameters.LineageKey",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "OnPremDHW_tnu",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"CurrentCutoffTime": {
+				"type": "string"
+			},
+			"LineageKey": {
+				"type": "int"
+			}
+		},
+		"folder": {
+			"name": "0. Master Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:47Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

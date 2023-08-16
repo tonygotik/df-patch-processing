@@ -1,0 +1,16 @@
+{
+	"name": "ForecastHeader",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQL_ML_PROD",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "SALESREPFORECAST",
+			"table": "vwForecastHeader"
+		}
+	}
+}

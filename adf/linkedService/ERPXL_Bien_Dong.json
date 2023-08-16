@@ -1,0 +1,16 @@
+{
+	"name": "ERPXL_Bien_Dong",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": "integrated security=False;data source=10.84.200.8;initial catalog=ERPXL_Bien_Dong;user id=DTLakeETL",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJlMDFiYzNiZS01ZDdmLTQ3MDgtOTNkOC1kNjYwODMxNDI1OTAiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "SH-GreenChicken",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

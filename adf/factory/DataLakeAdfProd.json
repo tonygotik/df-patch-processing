@@ -1,0 +1,9 @@
+{
+	"name": "DataLakeAdfProd",
+	"location": "southeastasia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "657f0023-e456-4105-9781-f51a9ca7e554",
+		"tenantId": "2f896526-7efb-4500-868d-c589a908aa53"
+	}
+}

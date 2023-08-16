@@ -1,0 +1,45 @@
+{
+	"name": "RawData_TradablePrice",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "OnPremDeheus2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [
+			{
+				"name": "RM_Code",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Price",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "UOM",
+				"type": "varchar"
+			},
+			{
+				"name": "FromDateKey",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ToDateKey",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ReportDateKey",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "VN",
+			"table": "stgTradablePrice"
+		}
+	}
+}

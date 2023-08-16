@@ -1,0 +1,16 @@
+{
+	"name": "CDN_GreenChicken_InvoicesList",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "OnPremDeheus2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "VN",
+			"table": "stgGreenChickenInvoiceList"
+		}
+	}
+}

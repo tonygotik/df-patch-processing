@@ -1,0 +1,121 @@
+{
+	"name": "102 - Extract pipeline for One DataSource - MiddleLevel",
+	"properties": {
+		"activities": [
+			{
+				"name": "DivideOneBatchIntoMultipleGroups",
+				"description": "Divide tables from single batch into multiple sub parallel groups to avoid reaching the output limit of lookup activity.",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@range(0, add(div(pipeline().parameters.SumOfTablesToExtractForCurrentBatch,\t\t\n                    pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity),\n                    if(equals(mod(pipeline().parameters.SumOfTablesToExtractForCurrentBatch, \n                    pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity), 0), 0, 1)))",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "GetTablesPerGroupToExtract",
+							"description": "Get tables from control table required to be extracted in this group. The order of tables to be extracted following the ExtractOrder in control table (ORDER BY [ExtractOrder] DESC).",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "SELECT  tbControl.*\nFROM    @{pipeline().parameters.MainControlTableName} tbControl\n    JOIN [ETL].[ExtractControlTableRuntime] tbRuntime\n    ON tbControl.Id = tbRuntime.ExtractLoadControlTableId\nWHERE\n    tbRuntime.PipelineRunId = '@{pipeline().parameters.MasterPipelineRunId}'\n    AND tbRuntime.LineageKey = @{pipeline().parameters.MasterSettings.MasterEtlLineageKey}\n    AND RowNumber \n        BETWEEN @{add(mul(int(item()),pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity),\n        add(mul(pipeline().parameters.SumOfTablesToExtractForCurrentBatch, pipeline().parameters.CurrentSequentialNumberOfBatch), 1))}\n        AND @{min(add(mul(int(item()), pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity), add(mul(pipeline().parameters.SumOfTablesToExtractForCurrentBatch, pipeline().parameters.CurrentSequentialNumberOfBatch),\n        pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity)),\n        mul(pipeline().parameters.SumOfTablesToExtractForCurrentBatch, add(pipeline().parameters.CurrentSequentialNumberOfBatch,1)), pipeline().parameters.SumOfTablesToExtract)}\n\n-- WITH OrderedControlTable AS (\n--    SELECT *, ROW_NUMBER() OVER (ORDER BY [ExtractOrder], [Id] DESC) AS RowNumber\n--    FROM @{pipeline().parameters.MainControlTableName}\n--    WHERE DataSourceId = '@{pipeline().parameters.DataSource.DataSourceId}' AND ExtractEnabled = 1)\n\n\n-- WITH OrderedControlTable AS (\n--     SELECT tbControl.*, ROW_NUMBER() OVER (ORDER BY [ExtractOrder], [Id] DESC) AS RowNumber\n--     FROM @{pipeline().parameters.MainControlTableName} tbControl\n--         OUTER APPLY \n--         (\n--             SELECT TOP 1 * FROM [ETL].[EtlLog] \n--             WHERE LineageKey = @{pipeline().parameters.MasterSettings.MasterEtlLineageKey} AND StageName = 'EXTRACT'\n--                 AND EtlLog.ExtractLoadControlTableId = tbControl.Id\n--             ORDER BY EtlLog.CreatedDateUtc DESC\n--         ) tbLog\n--     WHERE DataSourceId = @{pipeline().parameters.DataSource.DataSourceId} AND ExtractEnabled = 1\n--         AND (tbLog.EtlStatus = 'FAILED' OR tbLog.EtlStatus IS NULL)\n-- )\n-- SELECT * FROM OrderedControlTable WHERE RowNumber BETWEEN @{add(mul(int(item()),pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity),\n     add(mul(pipeline().parameters.SumOfTablesToExtractForCurrentBatch, pipeline().parameters.CurrentSequentialNumberOfBatch), 1))}\n--     AND @{min(add(mul(int(item()), pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity), add(mul(pipeline().parameters.SumOfTablesToExtractForCurrentBatch, pipeline().parameters.CurrentSequentialNumberOfBatch),\n     pipeline().parameters.MaxNumberOfTablesReturnedFromLookupActivity)),\n     mul(pipeline().parameters.SumOfTablesToExtractForCurrentBatch, add(pipeline().parameters.CurrentSequentialNumberOfBatch,1)), pipeline().parameters.SumOfTablesToExtract)}",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "SqlServerDestinationDS_tnu",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "ExtractTablesInOneGroup",
+							"description": "Execute another pipeline to extract tables from one group. The tables belonging to this group will be extracted parallelly.",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "GetTablesPerGroupToExtract",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "103 - Extract pipeline for One DataSource - BottomLevel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"TablesPerGroupToExtract": {
+										"value": "@activity('GetTablesPerGroupToExtract').output.value",
+										"type": "Expression"
+									},
+									"DataSource": {
+										"value": "@pipeline().parameters.DataSource",
+										"type": "Expression"
+									},
+									"MasterSettings": {
+										"value": "@pipeline().parameters.MasterSettings",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"MaxNumberOfTablesReturnedFromLookupActivity": {
+				"type": "int"
+			},
+			"CurrentSequentialNumberOfBatch": {
+				"type": "int"
+			},
+			"SumOfTablesToExtract": {
+				"type": "int"
+			},
+			"SumOfTablesToExtractForCurrentBatch": {
+				"type": "int"
+			},
+			"MainControlTableName": {
+				"type": "string"
+			},
+			"DataSource": {
+				"type": "object"
+			},
+			"MasterSettings": {
+				"type": "object"
+			},
+			"MasterPipelineRunId": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "1. Extract Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:51Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

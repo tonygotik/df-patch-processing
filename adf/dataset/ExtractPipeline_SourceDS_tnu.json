@@ -1,0 +1,54 @@
+{
+	"name": "ExtractPipeline_SourceDS_tnu",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "OnPremParameterized_tnu",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"ServerName": {
+					"value": "@dataset().dataSource.ServerName",
+					"type": "Expression"
+				},
+				"DatabaseName": {
+					"value": "@dataset().dataSource.DBName",
+					"type": "Expression"
+				},
+				"UserName": {
+					"value": "@dataset().dataSource.UserName",
+					"type": "Expression"
+				},
+				"Password": {
+					"value": "@dataset().dataSource.Password",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"schema": {
+				"type": "string"
+			},
+			"table": {
+				"type": "string"
+			},
+			"dataSource": {
+				"type": "object"
+			}
+		},
+		"folder": {
+			"name": "ETL"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().table",
+				"type": "Expression"
+			}
+		}
+	}
+}

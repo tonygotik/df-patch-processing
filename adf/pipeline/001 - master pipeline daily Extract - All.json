@@ -1,0 +1,218 @@
+{
+	"name": "001 - master pipeline daily Extract - All",
+	"properties": {
+		"description": "To invoke \"100 - Extract pipeline - Start\"\n\nCopy all tables from on-premise to Staging (schema = STG)",
+		"activities": [
+			{
+				"name": "log info EXTRACT STARTED",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Set ExecutionStartTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "802 - util pipeline - log info",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterEtlLineageKey": {
+							"value": "@pipeline().parameters.MasterEtlLineageKey",
+							"type": "Expression"
+						},
+						"PipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"EtlStatus": "EXTRACT STARTED",
+						"ExecutionStartUtc": {
+							"value": "@variables('ExecutionStartTime')",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "log info EXTRACT COMPLETED",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "100 - Extract pipeline - Start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "802 - util pipeline - log info",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterEtlLineageKey": {
+							"value": "@pipeline().parameters.MasterEtlLineageKey",
+							"type": "Expression"
+						},
+						"PipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"EtlStatus": "EXTRACT COMPLETED",
+						"ExecutionStartUtc": {
+							"value": "@variables('ExecutionStartTime')",
+							"type": "Expression"
+						},
+						"ExecutionEndUtc": {
+							"value": "@utcnow()",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "log error EXTRACT FAILED",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "100 - Extract pipeline - Start",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "803 - util pipeline - log error",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterEtlLineageKey": {
+							"value": "@pipeline().parameters.MasterEtlLineageKey",
+							"type": "Expression"
+						},
+						"PipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"EtlStatus": "EXTRACT FAILED",
+						"ExecutionStartUtc": {
+							"value": "@variables('ExecutionStartTime')",
+							"type": "Expression"
+						},
+						"ExecutionEndUtc": {
+							"value": "@utcnow()",
+							"type": "Expression"
+						},
+						"ErrorCode": {
+							"value": "@activity('100 - Extract pipeline - Start').Error.ErrorCode",
+							"type": "Expression"
+						},
+						"ErrorMessage": {
+							"value": "@activity('100 - Extract pipeline - Start').Error.Message",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set ExecutionStartTime",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ExecutionStartTime",
+					"value": {
+						"value": "@utcnow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "100 - Extract pipeline - Start",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "log info EXTRACT STARTED",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "100 - Extract pipeline - Start",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterSettings": {
+							"value": "@json(\nconcat(\n\t'{',\n\t\t'\"MasterEtlLineageKey\":', string(pipeline().parameters.MasterEtlLineageKey),\n\t\t',\"LastCutoffTime\": \"', pipeline().parameters.LastCutoffTime, '\"',\n\t\t',\"CurrentCutoffTime\": \"', pipeline().parameters.CurrentCutoffTime, '\"',\n\t\t',\"CountryKey\":', string(pipeline().parameters.CountryKey),\n\t'}'\n))",
+							"type": "Expression"
+						},
+						"MasterPipelineRunId": {
+							"value": "@pipeline().parameters.MasterPipelineRunId",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"MasterEtlLineageKey": {
+				"type": "int"
+			},
+			"CurrentCutoffTime": {
+				"type": "string"
+			},
+			"LastCutoffTime": {
+				"type": "string"
+			},
+			"CountryKey": {
+				"type": "int"
+			},
+			"MasterPipelineRunId": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"ExecutionStartTime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "0. Master Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

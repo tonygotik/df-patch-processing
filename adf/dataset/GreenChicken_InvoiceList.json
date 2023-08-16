@@ -1,0 +1,16 @@
+{
+	"name": "GreenChicken_InvoiceList",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Deheus_D365",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "VN",
+			"table": "stgGreenChickenInvoiceList"
+		}
+	}
+}

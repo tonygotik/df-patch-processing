@@ -1,0 +1,114 @@
+{
+	"name": "common pipeline - 02 - ETL logging",
+	"properties": {
+		"activities": [
+			{
+				"name": "common pipeline - 01 - ETLAddLog SP",
+				"description": "",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "common pipeline - 01 - ETLAddLog SP",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"LineageKey": {
+							"value": "@split(pipeline().parameters.logging,'|')[0]",
+							"type": "Expression"
+						},
+						"StageName": {
+							"value": "@split(pipeline().parameters.logging,'|')[1]",
+							"type": "Expression"
+						},
+						"SchemaName": {
+							"value": "@split(pipeline().parameters.logging,'|')[2]",
+							"type": "Expression"
+						},
+						"TableName": {
+							"value": "@split(pipeline().parameters.logging,'|')[3]",
+							"type": "Expression"
+						},
+						"StoredProcedureName": {
+							"value": "@split(pipeline().parameters.logging,'|')[4]",
+							"type": "Expression"
+						},
+						"EtlStatus": {
+							"value": "@split(pipeline().parameters.logging,'|')[5]",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@split(pipeline().parameters.logging,'|')[6]",
+							"type": "Expression"
+						},
+						"PipelineRunId": {
+							"value": "@split(pipeline().parameters.logging,'|')[7]",
+							"type": "Expression"
+						},
+						"ActivityError": {
+							"value": "@replace(string(split(pipeline().parameters.logging,'|')[8]),'^^^','|')",
+							"type": "Expression"
+						},
+						"ActivityStatus": {
+							"value": "@split(pipeline().parameters.logging,'|')[9]",
+							"type": "Expression"
+						},
+						"ActivityDuration": {
+							"value": "@split(pipeline().parameters.logging,'|')[10]",
+							"type": "Expression"
+						},
+						"ActivityRunId": {
+							"value": "@split(pipeline().parameters.logging,'|')[11]",
+							"type": "Expression"
+						},
+						"ActivityOutput": {
+							"value": "@split(pipeline().parameters.logging,'|')[12]",
+							"type": "Expression"
+						},
+						"ActivityExecutionStartTime": {
+							"value": "@split(pipeline().parameters.logging,'|')[13]",
+							"type": "Expression"
+						},
+						"ActivityExecutionEndTime": {
+							"value": "@split(pipeline().parameters.logging,'|')[14]",
+							"type": "Expression"
+						},
+						"ActivityStatusCode": {
+							"value": "@split(pipeline().parameters.logging,'|')[15]",
+							"type": "Expression"
+						},
+						"SourceName": {
+							"value": "@split(pipeline().parameters.logging,'|')[16]",
+							"type": "Expression"
+						},
+						"Parametters": {
+							"value": "@split(pipeline().parameters.logging,'|')[17]",
+							"type": "Expression"
+						},
+						"RaiseErrorIfActivityFailed": {
+							"value": "@pipeline().parameters.RaiseErrorIfActivityFailed",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"logging": {
+				"type": "string"
+			},
+			"RaiseErrorIfActivityFailed": {
+				"type": "string",
+				"defaultValue": "No"
+			}
+		},
+		"folder": {
+			"name": "Common Logging"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:48Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

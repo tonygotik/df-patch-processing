@@ -1,0 +1,137 @@
+{
+	"name": "201 - Load pipeline for One OrderNumber",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetListLoadTableByOrderNumber",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "--select *\n--from ETL.ExtractLoadControlTable\n--where LoadEnabled = 1 and LoadOrder = @{pipeline().parameters.LoadOrder}\n\n\nSELECT [ETL].[ExtractLoadControlTable].*\nFROM [ETL].[LoadControlTableRuntime] \n    JOIN [ETL].[ExtractLoadControlTable] ON  [ETL].[LoadControlTableRuntime].ExtractLoadControlTableId = [ETL].[ExtractLoadControlTable].Id \nWHERE PipelineRunId = '@{pipeline().parameters.MasterPipelineRunId}'\n    AND LineageKey = @{pipeline().parameters.MasterSettings.MasterEtlLineageKey}\n    AND LoadOrder = @{pipeline().parameters.LoadOrder}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SqlServerDestinationDS_tnu",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEachLoadTable",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetListLoadTableByOrderNumber",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetListLoadTableByOrderNumber').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 20,
+					"activities": [
+						{
+							"name": "Execute 202 - Load pipeline for One Table_copy1_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "pipeline_transform",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "202 - Load pipeline for One Table",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"TableSchema": {
+										"value": "@item().SinkObjectSchema",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().SinkObjectName",
+										"type": "Expression"
+									},
+									"MasterSettings": {
+										"value": "@pipeline().parameters.MasterSettings",
+										"type": "Expression"
+									},
+									"ExtractLoadControlTableSettings": {
+										"value": "@item()",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "pipeline_transform",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pipeline_transform",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceObjectSchema": {
+										"value": "@item().SourceObjectSchema",
+										"type": "Expression"
+									},
+									"SourceObjectName": {
+										"value": "@item().SourceObjectName",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"LoadOrder": {
+				"type": "int"
+			},
+			"MasterSettings": {
+				"type": "object"
+			},
+			"MasterPipelineRunId": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "2. Load Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:50Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

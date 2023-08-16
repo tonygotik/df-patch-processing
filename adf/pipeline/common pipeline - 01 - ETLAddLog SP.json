@@ -1,0 +1,235 @@
+{
+	"name": "common pipeline - 01 - ETLAddLog SP",
+	"properties": {
+		"activities": [
+			{
+				"name": "logging EtlAddLog",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ETL].[EtlAddLog]",
+					"storedProcedureParameters": {
+						"I_LineageKey": {
+							"value": {
+								"value": "@pipeline().parameters.LineageKey",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"V_StageName": {
+							"value": {
+								"value": "@pipeline().parameters.StageName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_SourceName": {
+							"value": {
+								"value": "@pipeline().parameters.SourceName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_SchemaName": {
+							"value": {
+								"value": "@pipeline().parameters.SchemaName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_TableName": {
+							"value": {
+								"value": "@pipeline().parameters.TableName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_StoredProcedureName": {
+							"value": {
+								"value": "@pipeline().parameters.StoredProcedureName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_EtlStatus": {
+							"value": {
+								"value": "@pipeline().parameters.EtlStatus",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_DataFactory": {
+							"value": {
+								"value": "@pipeline().DataFactory",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_PipelineName": {
+							"value": {
+								"value": "@pipeline().parameters.PipelineName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_PipelineRunId": {
+							"value": {
+								"value": "@pipeline().parameters.PipelineRunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"N_ActivityError": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityError",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_ActivityStatus": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityStatus",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_ActivityDuration": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityDuration",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_ActivityRunId": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityRunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"N_ActivityOutput": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityOutput",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"D_ActivityExecutionStartTime": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityExecutionStartTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"D_ActivityExecutionEndTime": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityExecutionEndTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"V_ActivityStatusCode": {
+							"value": {
+								"value": "@pipeline().parameters.ActivityStatusCode",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"N_Parametters": {
+							"value": {
+								"value": "@pipeline().parameters.Parametters",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"V_RaiseErrorIfActivityFailed": {
+							"value": {
+								"value": "@pipeline().parameters.RaiseErrorIfActivityFailed",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "OnPremDHW_tnu",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"LineageKey": {
+				"type": "int"
+			},
+			"StageName": {
+				"type": "string"
+			},
+			"SchemaName": {
+				"type": "string"
+			},
+			"TableName": {
+				"type": "string"
+			},
+			"StoredProcedureName": {
+				"type": "string"
+			},
+			"EtlStatus": {
+				"type": "string"
+			},
+			"PipelineName": {
+				"type": "string"
+			},
+			"PipelineRunId": {
+				"type": "string"
+			},
+			"ActivityError": {
+				"type": "string"
+			},
+			"ActivityStatus": {
+				"type": "string"
+			},
+			"ActivityDuration": {
+				"type": "string"
+			},
+			"ActivityRunId": {
+				"type": "string"
+			},
+			"ActivityOutput": {
+				"type": "string"
+			},
+			"ActivityExecutionStartTime": {
+				"type": "string"
+			},
+			"ActivityExecutionEndTime": {
+				"type": "string"
+			},
+			"ActivityStatusCode": {
+				"type": "string"
+			},
+			"SourceName": {
+				"type": "string"
+			},
+			"Parametters": {
+				"type": "string"
+			},
+			"RaiseErrorIfActivityFailed": {
+				"type": "string",
+				"defaultValue": "No"
+			}
+		},
+		"folder": {
+			"name": "Common Logging"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:47Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

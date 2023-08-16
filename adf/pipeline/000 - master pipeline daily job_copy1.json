@@ -1,0 +1,400 @@
+{
+	"name": "000 - master pipeline daily job_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "001 - master pipeline daily Extract - All",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "log info MASTER STARTED",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "001 - master pipeline daily Extract - All",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterEtlLineageKey": {
+							"value": "@activity('Get MasterEtlLineageKey').output.firstRow.LineageKey",
+							"type": "Expression"
+						},
+						"CurrentCutoffTime": {
+							"value": "@variables('CurrentCutoffTime')",
+							"type": "Expression"
+						},
+						"LastCutoffTime": {
+							"value": "@variables('LastCutoffTime')",
+							"type": "Expression"
+						},
+						"CountryKey": {
+							"value": "@pipeline().parameters.CountryKey",
+							"type": "Expression"
+						},
+						"MasterPipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get last CutoffTime",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": "SELECT [LastCutoffTime]\nFROM [ETL].[MasterEtlCutoffTime]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ListofPipelines",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set LastCutOffTime",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get last CutoffTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LastCutoffTime",
+					"value": {
+						"value": "@if(equals(toUpper(pipeline().parameters.UseManualInputLastCutoffTime), 'YES'),pipeline().parameters.InputLastCutoffTime,activity('Get last CutoffTime').output.firstRow.LastCutoffTime)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set CurrentCutOffTime",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "CurrentCutoffTime",
+					"value": {
+						"value": "@if(equals(toUpper(pipeline().parameters.UseManualInputCurrentCutoffTime), 'YES'),pipeline().parameters.InputCurrentCutoffTime,formatDateTime(convertFromUtc(addSeconds(utcNow(),1),'North Asia Standard Time'),'yyyy-MM-dd HH:mm:ss'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "log info MASTER STARTED",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Update MasterSettings",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "802 - util pipeline - log info",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterEtlLineageKey": {
+							"value": "@activity('Get MasterEtlLineageKey').output.firstRow.LineageKey",
+							"type": "Expression"
+						},
+						"PipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"EtlStatus": "MASTER STARTED",
+						"ExecutionStartUtc": {
+							"value": "@activity('Get last CutoffTime').ExecutionStartTime",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get MasterEtlLineageKey",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Set LastCutOffTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set CurrentCutOffTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderStoredProcedureName": "[ETL].[MasterEtlGetLineageKey]",
+						"storedProcedureParameters": {
+							"CurrentCutoffTime": {
+								"type": "DateTime",
+								"value": {
+									"value": "@variables('CurrentCutoffTime')",
+									"type": "Expression"
+								}
+							},
+							"PipelineName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"PipelineRunId": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								}
+							},
+							"PreviousCutoffTime": {
+								"type": "DateTime",
+								"value": {
+									"value": "@variables('LastCutoffTime')",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ListofPipelines",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Update MasterSettings",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Get MasterEtlLineageKey",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ETL].[sp_MasterEtlUpdateMasterSettings]",
+					"storedProcedureParameters": {
+						"LineageKey": {
+							"value": {
+								"value": "@activity('Get MasterEtlLineageKey').output.firstRow.LineageKey",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"MasterSettings": {
+							"value": {
+								"value": "@string(json(concat(\n'{',\n    '\"Parameters\":',\n    '{\"CountryKey\":', string(pipeline().parameters.CountryKey), ',',\n    '\"UseManualInputLastCutoffTime\": \"', pipeline().parameters.UseManualInputLastCutoffTime, '\",',\n    '\"InputLastCutoffTime\": \"', if(equals(toUpper(pipeline().parameters.UseManualInputLastCutoffTime), 'YES'), pipeline().parameters.InputLastCutoffTime, null), '\",',\n    '\"UseManualInputCurrentCutoffTime\": \"', pipeline().parameters.UseManualInputCurrentCutoffTime, '\",',\n    '\"InputCurrentCutoffTime\": \"', if(equals(toUpper(pipeline().parameters.UseManualInputCurrentCutoffTime), 'YES'), pipeline().parameters.InputCurrentCutoffTime, null), '\"',\n    '},',\n    '\"ActualValuesUsedToRunPipelines\": {',\n        '\"LastCutoffTime\": \"', string(variables('LastCutoffTime')), '\",',\n        '\"CurrentCutoffTime\": \"', string(variables('CurrentCutoffTime')), '\"',\n    '}',\n'}')))",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "OnPremiseNewPipeLine",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "002 - master pipeline daily Load - All",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "001 - master pipeline daily Extract - All",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "002 - master pipeline daily Load - All",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterEtlLineageKey": {
+							"value": "@activity('Get MasterEtlLineageKey').output.firstRow.LineageKey",
+							"type": "Expression"
+						},
+						"LastCutoffTime": {
+							"value": "@variables('LastCutoffTime')",
+							"type": "Expression"
+						},
+						"CurrentCutoffTime": {
+							"value": "@variables('CurrentCutoffTime')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "log info MASTER COMPLETED",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "008 - master pipeline daily Update LastCutoffTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "802 - util pipeline - log info",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"MasterEtlLineageKey": {
+							"value": "@activity('Get MasterEtlLineageKey').output.firstRow.LineageKey",
+							"type": "Expression"
+						},
+						"PipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"EtlStatus": "MASTER COMPLETED",
+						"ExecutionStartUtc": {
+							"value": "@activity('Get last CutoffTime').ExecutionStartTime",
+							"type": "Expression"
+						},
+						"ExecutionEndUtc": {
+							"value": "@activity('002 - master pipeline daily Load - All').ExecutionEndTime",
+							"type": "Expression"
+						},
+						"PipelineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "008 - master pipeline daily Update LastCutoffTime",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "002 - master pipeline daily Load - All",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "008 - master pipeline daily Update LastCutoffTime",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"CurrentCutoffTime": {
+							"value": "@variables('CurrentCutoffTime')",
+							"type": "Expression"
+						},
+						"LineageKey": {
+							"value": "@activity('Get MasterEtlLineageKey').output.firstRow.LineageKey",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"UseManualInputCurrentCutoffTime": {
+				"type": "string",
+				"defaultValue": "NO"
+			},
+			"InputCurrentCutoffTime": {
+				"type": "string",
+				"defaultValue": "Enter cutoff time when UseManualInputCurrentCutoffTime equals YES"
+			},
+			"CountryKey": {
+				"type": "int",
+				"defaultValue": -1
+			},
+			"UseManualInputLastCutoffTime": {
+				"type": "string",
+				"defaultValue": "NO"
+			},
+			"InputLastCutoffTime": {
+				"type": "string",
+				"defaultValue": "Enter last cutoff time when UseManualInputLastCutoffTime equals YES"
+			}
+		},
+		"variables": {
+			"CurrentCutoffTime": {
+				"type": "String"
+			},
+			"LastCutoffTime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "0. Master Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:55Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

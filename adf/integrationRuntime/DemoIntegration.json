@@ -1,0 +1,6 @@
+{
+	"name": "DemoIntegration",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}

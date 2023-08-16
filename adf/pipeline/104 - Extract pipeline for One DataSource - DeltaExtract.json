@@ -1,0 +1,346 @@
+{
+	"name": "104 - Extract pipeline for One DataSource - DeltaExtract",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetMaxWatermarkValue",
+				"description": "Query the source table to get the max value from watermark column - TODO: should use IF condition to not query DB when UseMasterCutoffTime is true = ONLY run this lookup when UseMasterCutoffTime is false",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "SetUseMasterCutoffTime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "select max(@{json(pipeline().parameters.TableSettingsToExtract.DataExtractBehaviorSettings).watermarkColumnName}) as CurrentMaxWaterMarkColumnValue from [@{pipeline().parameters.TableSettingsToExtract.SourceObjectSchema}].[@{pipeline().parameters.TableSettingsToExtract.SourceObjectName}]",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ExtractPipeline_SourceDS_tnu",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.TableSettingsToExtract.SourceObjectSchema",
+								"type": "Expression"
+							},
+							"table": {
+								"value": "@pipeline().parameters.TableSettingsToExtract.SourceObjectName",
+								"type": "Expression"
+							},
+							"dataSource": {
+								"value": "@pipeline().parameters.DataSource",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "SetWatermarkValueQuoteChar",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "SetMaxWatermarkValue",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "WatermarkValueQuoteChar",
+					"value": {
+						"value": "@if(contains(json(pipeline().parameters.TableSettingsToExtract.DataExtractBehaviorSettings).watermarkColumnType, 'Int'), '','''')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "DeltaExtractOneTable",
+				"description": "Extract the changed data only from last time via comparing the value in watermark column to identify changes.",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "SetWatermarkValueQuoteChar",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Source",
+						"value": "@{pipeline().parameters.TableSettingsToExtract.SourceObjectSchema}.@{pipeline().parameters.TableSettingsToExtract.SourceObjectName}"
+					},
+					{
+						"name": "Destination",
+						"value": "@{pipeline().parameters.TableSettingsToExtract.SinkObjectSchema}.@{pipeline().parameters.TableSettingsToExtract.SinkObjectName}"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "@{if(empty(json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).sqlReaderQuery), \n        concat('SELECT * FROM [', pipeline().parameters.TableSettingsToExtract.SourceObjectSchema,'].[', pipeline().parameters.TableSettingsToExtract.SourceObjectName, ']'), \n        json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).sqlReaderQuery)}\n\n--SELECT * FROM [@{pipeline().parameters.TableSettingsToExtract.SourceObjectSchema}].[@{pipeline().parameters.TableSettingsToExtract.SourceObjectName}]\n@{if(and(equals(empty(json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).sqlReaderQuery), bool(0)), \n        greater(indexOf(toUpper(json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).sqlReaderQuery), 'WHERE'), 0)), ' AND', 'WHERE')} \n\n                    --WHERE \n                    @{json(pipeline().parameters.TableSettingsToExtract.DataExtractBehaviorSettings).watermarkColumnName}\n                    > @{variables('WatermarkValueQuoteChar')}@{if(variables('UseMasterCutoffTime'), pipeline().parameters.MasterSettings.LastCutoffTime, json(pipeline().parameters.TableSettingsToExtract.DataExtractBehaviorSettings).watermarkColumnStartValue)}@{variables('WatermarkValueQuoteChar')}\n                    AND @{json(pipeline().parameters.TableSettingsToExtract.DataExtractBehaviorSettings).watermarkColumnName}\n                    <= @{variables('WatermarkValueQuoteChar')}@{if(variables('UseMasterCutoffTime'), pipeline().parameters.MasterSettings.CurrentCutoffTime, variables('MaxWatermarkValue'))}@{variables('WatermarkValueQuoteChar')}\n                    @{if(equals(pipeline().parameters.MasterSettings.CountryKey, -1), '', concat(' AND CountryKey = ', string(pipeline().parameters.MasterSettings.CountryKey)))}",
+							"type": "Expression"
+						},
+						"partitionOption": {
+							"value": "@json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).partitionOption",
+							"type": "Expression"
+						},
+						"partitionSettings": {
+							"partitionColumnName": {
+								"value": "@{json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).partitionColumnName}",
+								"type": "Expression"
+							},
+							"partitionUpperBound": {
+								"value": "@{json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).partitionUpperBound}",
+								"type": "Expression"
+							},
+							"partitionLowerBound": {
+								"value": "@{json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).partitionLowerBound}",
+								"type": "Expression"
+							},
+							"partitionNames": "@json(pipeline().parameters.TableSettingsToExtract.ExtractSourceSettings).partitionNames"
+						}
+					},
+					"sink": {
+						"type": "SqlServerSink",
+						"preCopyScript": {
+							"value": "@{json(pipeline().parameters.TableSettingsToExtract.ExtractSinkSettings).preCopyScript}",
+							"type": "Expression"
+						},
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": {
+							"value": "@{json(pipeline().parameters.TableSettingsToExtract.ExtractSinkSettings).tableOption}",
+							"type": "Expression"
+						}
+					},
+					"enableStaging": false,
+					"validateDataConsistency": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ExtractPipeline_SourceDS_tnu",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.TableSettingsToExtract.SourceObjectSchema",
+								"type": "Expression"
+							},
+							"table": {
+								"value": "@pipeline().parameters.TableSettingsToExtract.SourceObjectName",
+								"type": "Expression"
+							},
+							"dataSource": {
+								"value": "@pipeline().parameters.DataSource",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ExtractPipeline_DestinationDS_ntu",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.TableSettingsToExtract.SinkObjectSchema",
+								"type": "Expression"
+							},
+							"table": {
+								"value": "@pipeline().parameters.TableSettingsToExtract.SinkObjectName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "UpdateWatermarkColumnValue",
+				"description": "TODO: pass value for MainControlTableName from the pipeline '101 - Extract pipeline for One DataSource - TopLevel'",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "DeltaExtractOneTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ETL].[UpdateWatermarkColumnValue]",
+					"storedProcedureParameters": {
+						"extractLoadControlTable": {
+							"value": null,
+							"type": "String"
+						},
+						"Id": {
+							"value": {
+								"value": "@pipeline().parameters.TableSettingsToExtract.Id",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"watermarkColumnStartValue": {
+							"value": {
+								"value": "@variables('MaxWatermarkValue')",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "OnPremDHW_tnu",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Logging info or error for DeltaExtract",
+				"description": "invoke the pipeline 'common pipeline - 04 - ETL loggingJsonStr'",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "DeltaExtractOneTable",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "common pipeline - 04 - ETL loggingJsonStr",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"loggingJson": {
+							"value": "@json(\n    concat(\n        '{',\n            '\"LineageKey\": ', string(pipeline().parameters.MasterSettings.MasterEtlLineageKey), ',',\n            '\"StageName\": \"EXTRACT\",',\n            '\"SchemaName\": \"', pipeline().parameters.TableSettingsToExtract.SourceObjectSchema, '\",',\n            '\"TableName\": \"', pipeline().parameters.TableSettingsToExtract.SourceObjectName, '\",',\n            '\"StoredProcedureName\": null,',\n            '\"EtlStatus\": \"', if(equals(activity('DeltaExtractOneTable').Status, 'Failed'), 'FAILED', 'COMPLETED'), '\",',\n            '\"PipelineName\": \"', pipeline().Pipeline, '\",',\n            '\"PipelineRunId\": \"', pipeline().RunId, '\",',\n            '\"ActivityError\": ', activity('DeltaExtractOneTable').Error, ',',\n            '\"ActivityStatus\": \"', activity('DeltaExtractOneTable').Status, '\",',\n            '\"ActivityDuration\": \"', activity('DeltaExtractOneTable').Duration, '\",',\n            '\"ActivityRunId\": \"', activity('DeltaExtractOneTable').ActivityRunId, '\",',\n            '\"ActivityOutput\": ', activity('DeltaExtractOneTable').Output, ',',\n            '\"ActivityExecutionStartTime\": \"', activity('DeltaExtractOneTable').ExecutionStartTime, '\",',\n            '\"ActivityExecutionEndTime\": \"', activity('DeltaExtractOneTable').ExecutionEndTime, '\",',\n            '\"ActivityStatusCode\": \"', activity('DeltaExtractOneTable').StatusCode, '\",',\n            '\"SourceName\": null,',\n            '\"Parametters\": {\n                \"MasterSettings\":', string(pipeline().parameters.MasterSettings),\n                ',\"ExtractLoadControlTableSettings\":', string(pipeline().parameters.TableSettingsToExtract),\n            '}',\n        '}'\n    )\n)",
+							"type": "Expression"
+						},
+						"RaiseErrorIfActivityFailed": "No"
+					}
+				}
+			},
+			{
+				"name": "SetUseMasterCutoffTime",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "UseMasterCutoffTime",
+					"value": {
+						"value": "@not(equals(toUpper(coalesce(json(pipeline().parameters.TableSettingsToExtract.DataExtractBehaviorSettings).useMasterCutoffTime, '')), 'NO'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SetMaxWatermarkValue",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetMaxWatermarkValue",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "MaxWatermarkValue",
+					"value": {
+						"value": "@if(variables('UseMasterCutoffTime'), pipeline().parameters.MasterSettings.CurrentCutoffTime, activity('GetMaxWatermarkValue').output.firstRow.CurrentMaxWaterMarkColumnValue)",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"TableSettingsToExtract": {
+				"type": "object"
+			},
+			"DataSource": {
+				"type": "object"
+			},
+			"MasterSettings": {
+				"type": "object"
+			}
+		},
+		"variables": {
+			"WatermarkValueQuoteChar": {
+				"type": "String"
+			},
+			"MaxWatermarkValue": {
+				"type": "String"
+			},
+			"UseMasterCutoffTime": {
+				"type": "Boolean"
+			}
+		},
+		"folder": {
+			"name": "1. Extract Pipelines"
+		},
+		"annotations": []
+	}
+}

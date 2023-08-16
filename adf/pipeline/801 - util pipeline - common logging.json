@@ -1,0 +1,114 @@
+{
+	"name": "801 - util pipeline - common logging",
+	"properties": {
+		"activities": [
+			{
+				"name": "common logging MasterEtlAddLog",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ETL].[MasterEtlAddLog]",
+					"storedProcedureParameters": {
+						"ErrorCode": {
+							"value": null,
+							"type": "String"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@pipeline().parameters.ErrorMessage",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"EtlStatus": {
+							"value": {
+								"value": "@pipeline().parameters.EtlStatus",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ExecutionEndUtc": {
+							"value": {
+								"value": "@pipeline().parameters.ExecutionEndUtc",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"ExecutionStartUtc": {
+							"value": {
+								"value": "@pipeline().parameters.ExecutionStartUtc",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"LineageKey": {
+							"value": {
+								"value": "@pipeline().parameters.MasterEtlLineageKey",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().parameters.PipelineRunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().parameters.PipelineName",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "OnPremDHW_tnu",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"MasterEtlLineageKey": {
+				"type": "int"
+			},
+			"PipelineRunId": {
+				"type": "string"
+			},
+			"EtlStatus": {
+				"type": "string"
+			},
+			"ExecutionStartUtc": {
+				"type": "string"
+			},
+			"ExecutionEndUtc": {
+				"type": "string"
+			},
+			"ErrorCode": {
+				"type": "string"
+			},
+			"ErrorMessage": {
+				"type": "string"
+			},
+			"PipelineName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Common Logging"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:47Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

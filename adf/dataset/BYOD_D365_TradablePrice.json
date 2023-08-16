@@ -1,0 +1,16 @@
+{
+	"name": "BYOD_D365_TradablePrice",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Deheus_D365",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "VN",
+			"table": "TradablePrice"
+		}
+	}
+}

@@ -1,0 +1,67 @@
+{
+	"name": "OnPremForecastDetail",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "OnPremDeheus2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [
+			{
+				"name": "ForecastElementId",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ForecastHeaderId",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "MainItemCode",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Month1",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Month2",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Month3",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Month4",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Month5",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Month6",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "DateModified",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "stg",
+			"table": "ForecastElement"
+		}
+	}
+}

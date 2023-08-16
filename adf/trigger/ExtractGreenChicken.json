@@ -1,0 +1,40 @@
+{
+	"name": "ExtractGreenChicken",
+	"properties": {
+		"description": "Extract data invoice list from Green Chicken at 2:00 to extract data to RawData",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "Extract GreenChicken Data",
+					"type": "PipelineReference"
+				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "Extract Bien Dong Data",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-05-20T04:41:00",
+				"timeZone": "SE Asia Standard Time",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						1,
+						12
+					]
+				}
+			}
+		}
+	}
+}

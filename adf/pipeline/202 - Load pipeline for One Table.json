@@ -1,0 +1,115 @@
+{
+	"name": "202 - Load pipeline for One Table",
+	"properties": {
+		"activities": [
+			{
+				"name": "Collect logging for DefaultLoad",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LoadUpsertProceduceOnTableAndCollectResults",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "loggingJsonStr",
+					"value": {
+						"value": "@concat(\n\t'{',\n\t\t'\"LineageKey\": ', string(pipeline().parameters.MasterSettings.MasterEtlLineageKey), ',',\n\t\t'\"StageName\": \"LOAD\",',\n\t\t'\"SchemaName\": \"', pipeline().parameters.TableSchema, '\",',\n\t\t'\"TableName\": \"', pipeline().parameters.TableName, '\",',\n\t\t'\"StoredProcedureName\": \"[ETL].[p_Merge', pipeline().parameters.TableName, ']\",',\n\t\t'\"EtlStatus\": \"', if(equals(activity('LoadUpsertProceduceOnTableAndCollectResults').Status, 'Failed'), 'FAILED', 'COMPLETED'), '\",',\n\t\t'\"PipelineName\": \"', pipeline().Pipeline, '\",',\n\t\t'\"PipelineRunId\": \"', pipeline().RunId, '\",',\n\t\t'\"ActivityError\": \"', activity('LoadUpsertProceduceOnTableAndCollectResults').Error, '\",',\n\t\t'\"ActivityStatus\": \"', activity('LoadUpsertProceduceOnTableAndCollectResults').Status, '\",',\n\t\t'\"ActivityDuration\": \"', activity('LoadUpsertProceduceOnTableAndCollectResults').Duration, '\",',\n\t\t'\"ActivityRunId\": \"', activity('LoadUpsertProceduceOnTableAndCollectResults').ActivityRunId, '\",',\n\t\t'\"ActivityOutput\": ', activity('LoadUpsertProceduceOnTableAndCollectResults').output, ',',\n\t\t'\"ActivityExecutionStartTime\": \"', activity('LoadUpsertProceduceOnTableAndCollectResults').ExecutionStartTime, '\",',\n\t\t'\"ActivityExecutionEndTime\": \"', activity('LoadUpsertProceduceOnTableAndCollectResults').ExecutionEndTime, '\",',\n\t\t'\"ActivityStatusCode\": \"', activity('LoadUpsertProceduceOnTableAndCollectResults').StatusCode, '\",',\n\t\t'\"SourceName\": null,',\n\t\t'\"Parametters\": {\n\t\t\t\"MasterSettings\":', string(pipeline().parameters.MasterSettings),\n\t\t\t',\"ExtractLoadControlTableSettings\":', string(pipeline().parameters.ExtractLoadControlTableSettings),\n\t\t'}',\n\t'}'\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Logging info or error for DefaultLoad",
+				"description": "invoke the pipeline 'common pipeline - 04 - ETL loggingJsonStr'",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Collect logging for DefaultLoad",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "common pipeline - 04 - ETL loggingJsonStr",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"loggingJson": {
+							"value": "@json(variables('loggingJsonStr'))",
+							"type": "Expression"
+						},
+						"RaiseErrorIfActivityFailed": "No"
+					}
+				}
+			},
+			{
+				"name": "LoadUpsertProceduceOnTableAndCollectResults",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderStoredProcedureName": {
+							"value": "[ETL].[p_Merge@{pipeline().parameters.TableName}]",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SqlServerDestinationDS_tnu",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			}
+		],
+		"parameters": {
+			"TableSchema": {
+				"type": "string"
+			},
+			"TableName": {
+				"type": "string"
+			},
+			"MasterSettings": {
+				"type": "object"
+			},
+			"ExtractLoadControlTableSettings": {
+				"type": "object"
+			}
+		},
+		"variables": {
+			"loggingJsonStr": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "2. Load Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:49Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

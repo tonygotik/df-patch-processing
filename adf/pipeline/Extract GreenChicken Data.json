@@ -1,0 +1,114 @@
+{
+	"name": "Extract GreenChicken Data",
+	"properties": {
+		"activities": [
+			{
+				"name": "CDN GreenChicken to BYOD_D365 on cloud",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": "DECLARE --@Datefrom DATE = DATEADD(MONTH, -1, EOMONTH(GETDATE(), 0)),\n@Dateto DATE = CAST(GETDATE() AS DATE)\n\nDECLARE\n@Datefrom DATE = DATEADD(DAY, 1, EOMONTH(GETDATE(), -2))\n--@Datefrom DATE = '2022-01-01'\nEXEC [dbo].[SP_VN_Invoice_list] @Datefrom = @Datefrom, @Dateto = @Dateto",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE [VN].[stgGreenChickenInvoiceList]",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "CDN_GreenChicken",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "GreenChicken_InvoiceList",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "BYOD_D365 on cloud to Raw Data",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "CDN GreenChicken to BYOD_D365 on cloud",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "SqlServerSink",
+						"preCopyScript": "TRUNCATE TABLE VN.stgGreenChickenInvoiceList",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "GreenChicken_InvoiceList",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "CDN_GreenChicken_InvoicesList",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "External Extract Pipelines"
+		},
+		"annotations": []
+	}
+}

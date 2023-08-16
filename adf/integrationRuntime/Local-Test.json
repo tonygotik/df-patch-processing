@@ -1,0 +1,6 @@
+{
+	"name": "Local-Test",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}

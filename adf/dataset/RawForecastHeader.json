@@ -1,0 +1,65 @@
+{
+	"name": "RawForecastHeader",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "OnPremDeheus2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [
+			{
+				"name": "ForecastHeaderId",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "EmployeeCode",
+				"type": "nvarchar"
+			},
+			{
+				"name": "StartYear",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "StartMonth",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "SubmitStatus",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "DateCreated",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "DateModified",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "Region",
+				"type": "nvarchar"
+			},
+			{
+				"name": "CountryCode",
+				"type": "nvarchar"
+			},
+			{
+				"name": "WarehouseCode",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "stg",
+			"table": "ForecastHeader"
+		}
+	}
+}

@@ -1,0 +1,156 @@
+{
+	"name": "200 - Load pipeline - Start",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetListLoadOrder",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "GenerateDataForLoadRuntime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": {
+							"value": "\nSELECT DISTINCT [ETL].[ExtractLoadControlTable].LoadOrder\nFROM [ETL].[LoadControlTableRuntime]\nJOIN [ETL].[ExtractLoadControlTable] ON  [ETL].[LoadControlTableRuntime].ExtractLoadControlTableId = [ETL].[ExtractLoadControlTable].Id \nWHERE PipelineRunId = '@{pipeline().parameters.MasterPipelineRunId}'\n    AND LineageKey = @{pipeline().parameters.MasterSettings.MasterEtlLineageKey}\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "SqlServerDestinationDS_tnu",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEachLoadOrder",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetListLoadOrder",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetListLoadOrder').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Execute 201 - Load pipeline for One OrderNumber_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "201 - Load pipeline for One OrderNumber",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"LoadOrder": {
+										"value": "@item().LoadOrder",
+										"type": "Expression"
+									},
+									"MasterSettings": {
+										"value": "@pipeline().parameters.MasterSettings",
+										"type": "Expression"
+									},
+									"MasterPipelineRunId": {
+										"value": "@pipeline().parameters.MasterPipelineRunId",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "GenerateDataForLoadRuntime",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ETL].[LoadEtlGenerateDataForExtractRuntime]",
+					"storedProcedureParameters": {
+						"MasterEtlLineageKey": {
+							"value": {
+								"value": "@pipeline().parameters.MasterSettings.MasterEtlLineageKey",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().parameters.MasterPipelineRunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "OnPremDHW_tnu",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"MasterEtlLineageKey": {
+				"type": "int"
+			},
+			"LastCutoffTime": {
+				"type": "string"
+			},
+			"CurrentCutoffTime": {
+				"type": "string"
+			},
+			"MasterSettings": {
+				"type": "object"
+			},
+			"MasterPipelineRunId": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"ExecutionStartTime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "2. Load Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-02-25T07:33:51Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,16 @@
+{
+	"name": "OnPremDHW_tnu",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": "integrated security=False;data source=DESKTOP-KSD8PBB;initial catalog=datalakeprod_new;user id=adf",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJjOWZiODFjYS1jM2M3LTQ4ZjEtOGI0Zi1lNTA3ZjEyZmQ2ODkiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "self-hosted-ntu",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
