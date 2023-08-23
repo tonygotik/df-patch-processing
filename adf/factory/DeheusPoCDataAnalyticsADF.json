@@ -1,9 +1,0 @@
-{
-	"name": "DeheusPoCDataAnalyticsADF",
-	"location": "southeastasia",
-	"identity": {
-		"type": "SystemAssigned",
-		"principalId": "e365d588-9f53-4ed4-b425-7d3fc6f4b317",
-		"tenantId": "2f896526-7efb-4500-868d-c589a908aa53"
-	}
-}

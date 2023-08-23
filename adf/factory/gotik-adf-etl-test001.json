@@ -1,9 +1,0 @@
-{
-	"name": "gotik-adf-etl-test001",
-	"location": "southeastasia",
-	"identity": {
-		"type": "SystemAssigned",
-		"principalId": "1eaa7d65-24ac-41ff-9347-a34fe31dcaac",
-		"tenantId": "498dc5e1-2f9e-419c-9f24-37467ddbb038"
-	}
-}
